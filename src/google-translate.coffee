@@ -5,6 +5,8 @@
 #   hubot translate me <phrase> - Searches for a translation for the <phrase> and then prints that bad boy out.
 #   hubot translate me from <source> into <target> <phrase> - Translates <phrase> from <source> into <target>. Both <source> and <target> are optional
 
+qs = require('querystring')
+
 languages =
   "af": "Afrikaans",
   "sq": "Albanian",
@@ -71,53 +73,55 @@ languages =
   "cy": "Welsh",
   "yi": "Yiddish"
 
-getCode = (language,languages) ->
-  for code, lang of languages
-      return code if lang.toLowerCase() is language.toLowerCase()
-
 module.exports = (robot) ->
   language_choices = (language for _, language of languages).sort().join('|')
   pattern = new RegExp('translate(?: me)?' +
-                       "(?: from (#{language_choices}))?" +
-                       "(?: (?:in)?to (#{language_choices}))?" +
+                       "(?: from ([a-z]{2}))?" +
+                       "(?: (?:in)?to ([a-z]{2}))?" +
                        '(.*)', 'i')
   robot.respond pattern, (msg) ->
-    term   = "\"#{msg.match[3]?.trim()}\""
-    origin = if msg.match[1] isnt undefined then getCode(msg.match[1], languages) else 'auto'
-    target = if msg.match[2] isnt undefined then getCode(msg.match[2], languages) else 'en'
+    term = msg.match[3].trim()
+    data = "q=#{term}"
+    origin = if msg.match[1] isnt undefined then msg.match[1] else 'auto'
+    target = if msg.match[2] isnt undefined then msg.match[2] else 'en'
+    console.log origin
+    console.log target
+    console.log data
 
-    msg.http("https://translate.google.com/translate_a/single")
+    msg.http("https://translate.googleapis.com/translate_a/single")
       .query({
-        client: 't'
-        hl: 'en'
+        client: 'gtx'
         sl: origin
-        ssel: 0
         tl: target
-        tsel: 0
-        q: term
         ie: 'UTF-8'
         oe: 'UTF-8'
-        otf: 1
-        dt: ['bd', 'ex', 'ld', 'md', 'qca', 'rw', 'rm', 'ss', 't', 'at']
+        dt: 't'
       })
-      .header('User-Agent', 'Mozilla/5.0')
-      .get() (err, res, body) ->
+      .header('Accept', '*/*')
+      .header('User-Agent', 'Mozilla/4.0')
+      .header('Content-Type', 'application/x-www-form-urlencoded')
+      .header('Connection', 'keep-alive')
+      .header('Accept-Encoding', 'gzip, deflate')
+      .post(data) (err, res, body) ->
         if err
           msg.send "Failed to connect to GAPI"
           robot.emit 'error', err, res
           return
 
+        console.log JSON.parse(body)
+
         try
           if body.length > 4 and body[0] == '['
-            parsed = eval(body)
+            parsed = JSON.parse(body)
             language = languages[parsed[2]]
-            parsed = parsed[0] and parsed[0][0] and parsed[0][0][0]
-            parsed and= parsed.trim()
+            parsed = parsed[0]
+            transed = ''
+            transed += line[0] for line in parsed
             if parsed
               if msg.match[2] is undefined
-                msg.send "#{term} is #{language} for #{parsed}"
+                msg.send "#{term} is #{language} for #{transed}"
               else
-                msg.send "The #{language} #{term} translates as #{parsed} in #{languages[target]}"
+                msg.send "The #{language} #{term} translates as #{transed} in #{languages[target]}"
           else
             throw new SyntaxError 'Invalid JS code'
 
