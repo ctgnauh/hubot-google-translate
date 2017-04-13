@@ -84,9 +84,6 @@ module.exports = (robot) ->
     data = "q=#{term}"
     origin = if msg.match[1] isnt undefined then msg.match[1] else 'auto'
     target = if msg.match[2] isnt undefined then msg.match[2] else 'en'
-    console.log origin
-    console.log target
-    console.log data
 
     msg.http("https://translate.googleapis.com/translate_a/single")
       .query({
@@ -107,8 +104,6 @@ module.exports = (robot) ->
           msg.send "Failed to connect to GAPI"
           robot.emit 'error', err, res
           return
-
-        console.log JSON.parse(body)
 
         try
           if body.length > 4 and body[0] == '['
