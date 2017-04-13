@@ -5,8 +5,6 @@
 #   hubot translate me <phrase> - Searches for a translation for the <phrase> and then prints that bad boy out.
 #   hubot translate me from <source> into <target> <phrase> - Translates <phrase> from <source> into <target>. Both <source> and <target> are optional
 
-qs = require('querystring')
-
 languages =
   "af": "Afrikaans",
   "sq": "Albanian",
